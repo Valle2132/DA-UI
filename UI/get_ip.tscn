@@ -1,0 +1,19 @@
+[gd_scene load_steps=2 format=3 uid="uid://mjasfvcv3gl"]
+
+[sub_resource type="GDScript" id="GDScript_frrup"]
+script/source = "extends Node
+
+
+func _ready():
+	$HTTPRequest.request_completed.connect(_on_request_completed)
+	$HTTPRequest.request(\"https://api.ipify.org\")
+
+func _on_request_completed(result, response_code, headers, body):
+	var json = body.get_string_from_utf8()
+	print(json)
+"
+
+[node name="GetIp" type="Node"]
+script = SubResource("GDScript_frrup")
+
+[node name="HTTPRequest" type="HTTPRequest" parent="."]

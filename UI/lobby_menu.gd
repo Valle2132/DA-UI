@@ -7,62 +7,39 @@ enum Fractions {
 	OLYMPUS,
 	DARKTEMPLARS
 }
-
 var chosen_fraction
 
-var http = HTTPClient.new() # Create the Client.
-var err = 0
-var headers = [
-		"User-Agent: Pirulo/1.0 (Godot)",
-		"Accept: */*"
-	]
-	
 var game_key
+var ip
 
-# Called when the node enters the scene tree for the first time.
+var httpActive : bool = false;
+
 func _ready():
+	#TODO !!!!!! if LobbyType.lobby_owner macht unterschiedliche Dinge mit Networking!!!
+	
 	_generate_code()
-		
-	$PrivateButton.button_pressed = true
+	
 	user_prefs = UserPreferences.load_or_create()
 	$Player1LineEdit.text = user_prefs.user_name
-	
 	if user_prefs.user_name == "":
 		$Player1LineEdit.text = "Player1"
-		
-		#TODO: player2.name == "":
-	if $Player2LineEdit.text == "":
-		$Player2LineEdit.text = "Player2"
-	#if user_prefs.user_name:
-		#text = user_prefs.user_name
-		# TODO: spielername zu spielerliste hinzufügen
-	# TODO: verbinden mit container + code + socket
+	# TODO: peer host entity
+
+	httpActive = true
+	$HTTPRequest.request_completed.connect(_on_request_completed)
+	$HTTPRequest.request("https://api.ipify.org")
+	while(httpActive): 
+		await get_tree().create_timer(0.1).timeout
 	
-	err = http.connect_to_host("https://valtonlobbycontainer.trueberryless.org", 80) # Connect to host/port.
-	assert(err == OK) # Make sure connection is OK.
+	$PrivateButton.button_pressed = true
 
-	while http.get_status() == HTTPClient.STATUS_CONNECTING or http.get_status() == HTTPClient.STATUS_RESOLVING:
-		http.poll()
-		print("Connecting...")
 
-	assert(http.get_status() == HTTPClient.STATUS_CONNECTED) # Check if the connection was made successfully.
-
-	var headers = [
-		"User-Agent: Pirulo/1.0 (Godot)",
-		"Accept: */*"
-	]
-	err = http.request(HTTPClient.METHOD_POST,"/StartSession",headers,game_key)
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta):
-	pass
-
+func _on_request_completed(result, response_code, headers, body):
+	ip = body.get_string_from_utf8()
+	httpActive = false
 
 func _on_return_button_pressed():
 	$ButtonClickSound.play()
-	# leave lobby if guest
-	# close lobby if host
-	# return to play menu
 	get_tree().change_scene_to_file("res://UI/play_menu.tscn")
 
 func _on_return_button_mouse_entered():
@@ -129,18 +106,20 @@ func _generate_code():
 
 	game_key = "".join(code_array)
 	$GeneratedKeyLineEdit.text = game_key
-	# TODO: send key to server
 
 func _on_copy_key_button_pressed():
+	$ButtonClickSound.play()
 	DisplayServer.clipboard_set($GeneratedKeyLineEdit.text)
+
+func _on_copy_key_button_mouse_entered():
+	$ButtonHoverSound.play()
 
 func _on_public_button_toggled(toggled_on):
 	if toggled_on:
 		$CopyKeyButton.hide()
 		$GeneratedKeyLineEdit.text = ""
 		$PublicButton.scale = Vector2(1.1, 1.1)
-		$PublicButton.position = Vector2(645, 155)
-		err = http.request(HTTPClient.METHOD_POST,"/UpdateToPublic",headers,game_key)
+		$PublicButton.position = Vector2(635, 155)
 	else:
 		$CopyKeyButton.show()
 		$PublicButton.scale = Vector2(1, 1)
@@ -149,12 +128,20 @@ func _on_public_button_toggled(toggled_on):
 func _on_private_button_toggled(toggled_on):
 	if toggled_on:
 		$GeneratedKeyLineEdit.text = game_key
+
+		httpActive = true
+		create_private_lobby()
+		while(httpActive): 
+			await get_tree().create_timer(0.1).timeout
+
 		$PrivateButton.scale = Vector2(1.1, 1.1)
-		$PrivateButton.position = Vector2(975, 155)
+		$PrivateButton.position = Vector2(965, 155)
 	else:
 		$PrivateButton.scale = Vector2(1, 1)
 		$PrivateButton.position = Vector2(980, 160)
 
-# TODO: if player2 joins $Player2LineEdit.visible = true 
-# TODO: else false !process(delta)!
-
+func create_private_lobby():
+	var urlparam = "https://valtonlobbycontainer.trueberryless.org/Lobby/StartSession?hostAddress="+str(ip)+"&lobbyCode="+str(game_key)
+	#var urlparam = "http://localhost:5077/Lobby/StartSession?hostAddress="+str(ip)+"&lobbyCode="+str(game_key)
+	$HTTPRequest.request(urlparam, [], HTTPClient.METHOD_POST, "")
+	httpActive = false

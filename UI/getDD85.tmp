@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3 uid="uid://cq7dglp4bg7o6"]
+
+[ext_resource type="Script" path="res://UI/get_ip.gd" id="1_rqtrw"]
+
+[node name="GetIp" type="Node"]
+script = ExtResource("1_rqtrw")
+
+[node name="HTTPRequest" type="HTTPRequest" parent="."]

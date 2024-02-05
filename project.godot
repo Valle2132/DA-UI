@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 MenuMusic="*res://UI/menu_music.tscn"
+LobbyType="*res://ressources/lobby_type.gd"
 
 [display]
 

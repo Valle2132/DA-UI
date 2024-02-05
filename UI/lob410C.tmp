@@ -278,7 +278,6 @@ editable = false
 [connection signal="toggled" from="ChooseFraction/ChooseStarSeraphsButton" to="." method="_on_choose_star_seraphs_button_toggled"]
 [connection signal="toggled" from="ChooseFraction/ChooseOlympusButton" to="." method="_on_choose_olympus_button_toggled"]
 [connection signal="toggled" from="ChooseFraction/ChooseDarkTemplarsButton" to="." method="_on_choose_dark_templars_button_toggled"]
-[connection signal="mouse_entered" from="CopyKeyButton" to="." method="_on_copy_key_button_mouse_entered"]
 [connection signal="pressed" from="CopyKeyButton" to="." method="_on_copy_key_button_pressed"]
 [connection signal="toggled" from="PublicButton" to="." method="_on_public_button_toggled"]
 [connection signal="toggled" from="PrivateButton" to="." method="_on_private_button_toggled"]
