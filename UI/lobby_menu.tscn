@@ -270,6 +270,10 @@ editable = false
 
 [node name="HTTPRequest" type="HTTPRequest" parent="."]
 
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("")
+spawn_path = NodePath("..")
+
 [connection signal="mouse_entered" from="ReturnButton" to="." method="_on_return_button_mouse_entered"]
 [connection signal="pressed" from="ReturnButton" to="." method="_on_return_button_pressed"]
 [connection signal="mouse_entered" from="GameStartButton" to="." method="_on_game_start_button_mouse_entered"]

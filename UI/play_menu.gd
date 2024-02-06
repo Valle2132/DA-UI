@@ -2,7 +2,7 @@ extends Control
 
 var user_prefs: UserPreferences
 
-var game_key
+var entered_game_key
 
 
 
@@ -38,19 +38,25 @@ func _on_join_session_button_mouse_entered():
 
 func _on_local_session_button_pressed():
 	$ButtonClickSound.play()
+	LobbyType.lobby_type = "HOST"
 	get_tree().change_scene_to_file("res://UI/lobby_menu.tscn")
-	LobbyType.lobby_owner = true
 	
 func _on_host_session_button_pressed():
 	$ButtonClickSound.play()
+	LobbyType.lobby_type = "HOST"
 	get_tree().change_scene_to_file("res://UI/lobby_menu.tscn")
-	LobbyType.lobby_owner = true
 
 func _on_join_session_button_pressed():
 	$ButtonClickSound.play()
 	#TODO: join online lobby screen (use key for private lobby, leave blank for public lobby) 
-	get_tree().change_scene_to_file("res://UI/lobby_menu.tscn")
-	LobbyType.lobby_owner = false
+	if $EnterKeyLineEdit.text == "":
+		LobbyType.lobby_type = "JOIN"
+		get_tree().change_scene_to_file("res://UI/lobby_menu.tscn")
+	else:
+		LobbyType.lobby_type = "JOIN_WITH_KEY"
+		LobbyType.lobby_enter_key = entered_game_key
+		get_tree().change_scene_to_file("res://UI/lobby_menu.tscn")
+
 
 func _on_enter_name_line_edit_text_changed(name_text):
 	user_prefs.user_name = name_text
@@ -59,6 +65,6 @@ func _on_enter_name_line_edit_text_changed(name_text):
 
 func _on_enter_key_line_edit_text_changed(new_text):
 	if new_text.length() >= 6:
-		game_key = new_text
+		entered_game_key = new_text
 
 
