@@ -17,61 +17,80 @@ var httpActive : bool = false;
 var peer = ENetMultiplayerPeer.new()
 @export var player_scene : PackedScene # TODO: was das
 
+var id
+
 func _ready():
-	_generate_code()
-	
+	user_prefs = UserPreferences.load_or_create()
+
+	if LobbyType.lobby_type == "HOST":
+		host_lobby()
+
+	if LobbyType.lobby_type == "JOIN_WITH_KEY":
+		join_private()
+
+	if LobbyType.lobby_enter_key == "JOIN":
+		join_public()
+
+
+func host_lobby():
+	id = 1
 	# Host IP Adresse
 	httpActive = true
 	$HTTPRequest.request_completed.connect(_on_request_completed)
 	$HTTPRequest.request("https://api.ipify.org")
 	while(httpActive): 
 		await get_tree().create_timer(0.1).timeout
-	
-	# Wie HostButtonPressed
-	if LobbyType.lobby_type == "HOST":
-		httpActive = true
-		create_private_lobby()
-		while(httpActive): 
-			await get_tree().create_timer(0.1).timeout
-
-		peer.create_server(9000)
-		multiplayer.multiplayer_peer = peer
-		multiplayer.peer_connected.connect(add_player_card)
-		add_player_card()
 		
-	# Wie HostButtonPressed
-	if LobbyType.lobby_type == "JOIN":
-		if LobbyType.lobby_enter_key == generated_game_key:
-			httpActive = true
-			join_private_lobby()
-			while(httpActive): 
-				await get_tree().create_timer(0.1).timeout
-			
-			peer.create_client(str(ip), 9000)
-			multiplayer.multiplayer_peer = peer
-			# TODO: falscher GameKey???
-
-		if LobbyType.lobby_enter_key == "":
-			httpActive = true
-			join_public_lobby()
-			while(httpActive): 
-				await get_tree().create_timer(0.1).timeout
-			
-			peer.create_client(str(ip), 9000)
-			multiplayer.multiplayer_peer = peer
-	else:
-		pass
-
-	# Host Name aus user_prefs
-	user_prefs = UserPreferences.load_or_create()
-	$Player1LineEdit.text = user_prefs.user_name
-	if user_prefs.user_name == "":
-		$Player1LineEdit.text = "Player1"
-	# TODO: peer host entity
-
-
+	_generate_code()
+	$PublicButton.disabled = false
+	$PrivateButton.disabled = false
 	$PrivateButton.button_pressed = true
+	$CopyKeyButton.show()
+	
+	httpActive = true
+	create_private_lobby()
+	while(httpActive): 
+		await get_tree().create_timer(0.1).timeout
 
+	peer.create_server(9000)
+	multiplayer.multiplayer_peer = peer
+	multiplayer.peer_connected.connect(add_player_card)
+	add_player_card(id)
+
+func join_private():
+	#if LobbyType.lobby_enter_key == generated_game_key:
+	id = 2
+	httpActive = true
+	join_private_lobby()
+	while(httpActive): 
+		await get_tree().create_timer(0.1).timeout
+	
+	#peer.create_client(str(ip), 9000)
+	peer.create_client("127.0.0.1", 9000)
+	multiplayer.multiplayer_peer = peer
+	add_player_card(id)
+	# TODO: falscher GameKey???
+
+func join_public():
+	id = 2
+	httpActive = true
+	join_public_lobby()
+	while(httpActive): 
+		await get_tree().create_timer(0.1).timeout
+	
+	#peer.create_client(str(ip), 9000)
+	peer.create_client("127.0.0.1", 9000)
+	multiplayer.multiplayer_peer = peer
+	add_player_card(id)
+	
+	#else:
+		# TODO: error msg
+		#get_tree().change_scene_to_file("res://UI/play_menu.tscn")
+
+
+#else:
+	# TODO: error msg
+	#get_tree().change_scene_to_file("res://UI/play_menu.tscn")
 
 func _on_request_completed(result, response_code, headers, body):
 	ip = body.get_string_from_utf8()
@@ -79,7 +98,7 @@ func _on_request_completed(result, response_code, headers, body):
 
 func _on_return_button_pressed():
 	$ButtonClickSound.play()
-	exit_game(name.to_int())
+	#exit_lobby(name.to_int())
 	get_tree().change_scene_to_file("res://UI/play_menu.tscn")
 
 func _on_return_button_mouse_entered():
@@ -140,7 +159,6 @@ func _generate_code():
 		code_array.append(characters[random_index])
 
 	generated_game_key = "".join(code_array)
-	$GeneratedKeyLineEdit.text = generated_game_key
 
 func _on_copy_key_button_pressed():
 	$ButtonClickSound.play()
@@ -191,13 +209,27 @@ func _on_public_request_completed(result, response_code, headers, body):
 	ip = body.get_string_from_utf8()
 	httpActive = false
 
-func add_player_card(id = 1):
-	var player_card = player_scene.instantiate()
-	player_card.name = str(id)
-	call_deferred("add_player_card", player_card)
+func add_player_card(id):
+	#var player_card = player_scene.instantiate()
+	#player_card.name = str(id)
+	if id == 1:
+		$Player1LineEdit.show()
+		$Player1LineEdit.text = user_prefs.user_name
+		if user_prefs.user_name == "":
+			$Player1LineEdit.text = "Player1"
+	if id == 2:
+		$Player2LineEdit.show()
+		$Player2LineEdit.text = user_prefs.user_name
+		if user_prefs.user_name == "":
+			$Player2LineEdit.text = "Player2"
+	call_deferred("add_player_card")
 
-func exit_game(id):
+func exit_lobby(id):
 	multiplayer.peer_disconnected.connect(del_player)
+	if id == 1:
+		$Player1LineEdit.hide()
+	if id == 2:
+		$Player2LineEdit.hide()
 	del_player(id)
 
 func del_player(id):
@@ -205,6 +237,7 @@ func del_player(id):
 
 @rpc("any_peer", "call_local")
 func _del_player(id):
-	get_node(str(id)).queue_free()
+	#get_node(str(id)).queue_free()
+	pass
 
 # TODO: wenn der Rest geht, UpdateToPublic, UpdateToPrivate !!! NUR HOST !!!

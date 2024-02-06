@@ -5,14 +5,12 @@ var user_prefs: UserPreferences
 var entered_game_key
 
 
-
-
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	user_prefs = UserPreferences.load_or_create()
+	
 	if user_prefs.user_name:
 		$EnterNameLineEdit.text = user_prefs.user_name
-
 	
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):
@@ -48,7 +46,6 @@ func _on_host_session_button_pressed():
 
 func _on_join_session_button_pressed():
 	$ButtonClickSound.play()
-	#TODO: join online lobby screen (use key for private lobby, leave blank for public lobby) 
 	if $EnterKeyLineEdit.text == "":
 		LobbyType.lobby_type = "JOIN"
 		get_tree().change_scene_to_file("res://UI/lobby_menu.tscn")
