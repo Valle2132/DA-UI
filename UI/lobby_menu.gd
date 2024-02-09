@@ -1,5 +1,5 @@
 extends Control
-
+var first_toggle = true
 var user_prefs: UserPreferences
 
 enum Fractions {
@@ -14,26 +14,26 @@ var ip
 
 var httpActive : bool = false;
 
-var peer = ENetMultiplayerPeer.new()
-@export var player_scene : PackedScene # TODO: was das
-
-var id
-
 func _ready():
-	user_prefs = UserPreferences.load_or_create()
+	Lobby.connect("player_connected", show_player_line_edit)
+	Lobby.connect("player_disconnected", hide_player_line_edit)
+	Lobby.connect("server_disconnected", server_disconnected_return)
 
-	if LobbyType.lobby_type == "HOST":
+	user_prefs = UserPreferences.load_or_create()
+	Lobby.player_info["name"] = user_prefs.user_name
+	
+	#Quasi die UI Buttons
+	if LobbyType.lobby_type == "HOST": 
 		host_lobby()
 
 	if LobbyType.lobby_type == "JOIN_WITH_KEY":
 		join_private()
 
-	if LobbyType.lobby_enter_key == "JOIN":
+	if LobbyType.lobby_type == "JOIN":
 		join_public()
 
 
 func host_lobby():
-	id = 1
 	# Host IP Adresse
 	httpActive = true
 	$HTTPRequest.request_completed.connect(_on_request_completed)
@@ -51,46 +51,26 @@ func host_lobby():
 	create_private_lobby()
 	while(httpActive): 
 		await get_tree().create_timer(0.1).timeout
-
-	peer.create_server(9000)
-	multiplayer.multiplayer_peer = peer
-	multiplayer.peer_connected.connect(add_player_card)
-	add_player_card(id)
+	# TODO: lobby manager
+	Lobby.create_game()
 
 func join_private():
-	#if LobbyType.lobby_enter_key == generated_game_key:
-	id = 2
 	httpActive = true
 	join_private_lobby()
 	while(httpActive): 
 		await get_tree().create_timer(0.1).timeout
-	
-	#peer.create_client(str(ip), 9000)
-	peer.create_client("127.0.0.1", 9000)
-	multiplayer.multiplayer_peer = peer
-	add_player_card(id)
-	# TODO: falscher GameKey???
+	Lobby.join_game()
+	# TODO: DEFAULT_IP
+	#obby.join_game(str(ip))
 
 func join_public():
-	id = 2
 	httpActive = true
 	join_public_lobby()
 	while(httpActive): 
 		await get_tree().create_timer(0.1).timeout
-	
-	#peer.create_client(str(ip), 9000)
-	peer.create_client("127.0.0.1", 9000)
-	multiplayer.multiplayer_peer = peer
-	add_player_card(id)
-	
-	#else:
-		# TODO: error msg
-		#get_tree().change_scene_to_file("res://UI/play_menu.tscn")
-
-
-#else:
-	# TODO: error msg
-	#get_tree().change_scene_to_file("res://UI/play_menu.tscn")
+	Lobby.join_game()
+	# TODO: DEFAULT_IP
+	#Lobby.join_game(str(ip))
 
 func _on_request_completed(result, response_code, headers, body):
 	ip = body.get_string_from_utf8()
@@ -98,7 +78,8 @@ func _on_request_completed(result, response_code, headers, body):
 
 func _on_return_button_pressed():
 	$ButtonClickSound.play()
-	#exit_lobby(name.to_int())
+	if LobbyType.lobby_type == "HOST": 
+		Lobby.remove_multiplayer_peer()
 	get_tree().change_scene_to_file("res://UI/play_menu.tscn")
 
 func _on_return_button_mouse_entered():
@@ -113,10 +94,27 @@ func _on_game_start_button_mouse_entered():
 func _on_game_start_button_toggled(toggled_on):
 	if toggled_on:
 		$GameStartButton.text = "Ready!"
-		# TODO: if both players are ready the game can start after [time]
-		# TODO: method_name(chosen_fraction, player1, player2)
+		Lobby.player_info["fraction"] = chosen_fraction
+		$PublicButton.disabled = true
+		$PrivateButton.disabled = true
+		$CopyKeyButton.disabled = true
+		if chosen_fraction == Fractions.DARKTEMPLARS:
+			$ChooseFraction/ChooseStarSeraphsButton.disabled = true
+			$ChooseFraction/ChooseOlympusButton.disabled = true
+		if chosen_fraction == Fractions.STARSERAPHS:
+			$ChooseFraction/ChooseDarkTemplarsButton.disabled = true
+			$ChooseFraction/ChooseOlympusButton.disabled = true
+		if chosen_fraction == Fractions.OLYMPUS:
+			$ChooseFraction/ChooseStarSeraphsButton.disabled = true
+			$ChooseFraction/ChooseDarkTemplarsButton.disabled = true
 	else:
 		$GameStartButton.text = "Ready?"
+		$PublicButton.disabled = false
+		$PrivateButton.disabled = false
+		$CopyKeyButton.disabled = false
+		$ChooseFraction/ChooseDarkTemplarsButton.disabled = false
+		$ChooseFraction/ChooseStarSeraphsButton.disabled = false
+		$ChooseFraction/ChooseOlympusButton.disabled = false
 
 func _on_choose_star_seraphs_button_toggled(toggled_on):
 	$GameStartButton.disabled = false
@@ -169,6 +167,9 @@ func _on_copy_key_button_mouse_entered():
 
 func _on_public_button_toggled(toggled_on):
 	if toggled_on:
+		var urlparam = "https://valtonlobbycontainer.trueberryless.org/Lobby/UpdateToPublic?lobbyCode="+str(generated_game_key)
+		$HTTPRequest.request(urlparam, [], HTTPClient.METHOD_POST, "")
+		httpActive = false
 		$CopyKeyButton.hide()
 		$GeneratedKeyLineEdit.text = ""
 		$PublicButton.scale = Vector2(1.1, 1.1)
@@ -180,6 +181,13 @@ func _on_public_button_toggled(toggled_on):
 
 func _on_private_button_toggled(toggled_on):
 	if toggled_on:
+		if not first_toggle:
+			var urlparam = "https://valtonlobbycontainer.trueberryless.org/Lobby/UpdateToPrivate?lobbyCode=" + str(generated_game_key)
+			$HTTPRequest.request(urlparam, [], HTTPClient.METHOD_POST, "")
+			httpActive = false
+		else:
+			# Falls es der erste Toggle ist, setzen Sie die Variable auf False
+			first_toggle = false
 		$GeneratedKeyLineEdit.text = generated_game_key
 		$PrivateButton.scale = Vector2(1.1, 1.1)
 		$PrivateButton.position = Vector2(965, 155)
@@ -191,11 +199,11 @@ func create_private_lobby():
 	var urlparam = "https://valtonlobbycontainer.trueberryless.org/Lobby/StartSession?hostAddress="+str(ip)+"&lobbyCode="+str(generated_game_key)
 	$HTTPRequest.request(urlparam, [], HTTPClient.METHOD_POST, "")
 	httpActive = false
-
+	
 func join_private_lobby():
 	$HTTPRequest.request_completed.connect(_on_private_request_completed)
 	$HTTPRequest.request("https://valtonlobbycontainer.trueberryless.org/Lobby/JoinSessionWithCode?lobbyCode="+str(LobbyType.lobby_enter_key))
-
+	
 func _on_private_request_completed(result, response_code, headers, body):
 	ip = body.get_string_from_utf8()
 	httpActive = false
@@ -204,40 +212,28 @@ func join_public_lobby():
 	$HTTPRequest.request_completed.connect(_on_public_request_completed)
 	$HTTPRequest.request("https://valtonlobbycontainer.trueberryless.org/Lobby/JoinSession")
 	httpActive = false
+	
 
 func _on_public_request_completed(result, response_code, headers, body):
 	ip = body.get_string_from_utf8()
 	httpActive = false
 
-func add_player_card(id):
-	#var player_card = player_scene.instantiate()
-	#player_card.name = str(id)
-	if id == 1:
+
+func show_player_line_edit(peer_id, player_info):
+	if peer_id == 1:
 		$Player1LineEdit.show()
-		$Player1LineEdit.text = user_prefs.user_name
-		if user_prefs.user_name == "":
-			$Player1LineEdit.text = "Player1"
-	if id == 2:
+		$Player1LineEdit.text = player_info["name"]
+	elif peer_id != 1:
 		$Player2LineEdit.show()
-		$Player2LineEdit.text = user_prefs.user_name
-		if user_prefs.user_name == "":
-			$Player2LineEdit.text = "Player2"
-	call_deferred("add_player_card")
+		$Player2LineEdit.text = player_info["name"]
+	
 
-func exit_lobby(id):
-	multiplayer.peer_disconnected.connect(del_player)
-	if id == 1:
+func hide_player_line_edit(peer_id):
+	if peer_id == 1:
 		$Player1LineEdit.hide()
-	if id == 2:
+	elif peer_id != 1:
 		$Player2LineEdit.hide()
-	del_player(id)
 
-func del_player(id):
-	rpc("_del_player", id)
-
-@rpc("any_peer", "call_local")
-func _del_player(id):
-	#get_node(str(id)).queue_free()
-	pass
-
+func server_disconnected_return():
+	get_tree().change_scene_to_file("res://UI/play_menu.tscn")
 # TODO: wenn der Rest geht, UpdateToPublic, UpdateToPrivate !!! NUR HOST !!!
