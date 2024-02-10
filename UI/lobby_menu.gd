@@ -59,18 +59,18 @@ func join_private():
 	join_private_lobby()
 	while(httpActive): 
 		await get_tree().create_timer(0.1).timeout
-	Lobby.join_game()
+	#Lobby.join_game()
 	# TODO: DEFAULT_IP
-	#obby.join_game(str(ip))
+	Lobby.join_game(str(ip))
 
 func join_public():
 	httpActive = true
 	join_public_lobby()
 	while(httpActive): 
 		await get_tree().create_timer(0.1).timeout
-	Lobby.join_game()
+	#Lobby.join_game()
 	# TODO: DEFAULT_IP
-	#Lobby.join_game(str(ip))
+	Lobby.join_game(str(ip))
 
 func _on_request_completed(result, response_code, headers, body):
 	ip = body.get_string_from_utf8()
@@ -236,4 +236,3 @@ func hide_player_line_edit(peer_id):
 
 func server_disconnected_return():
 	get_tree().change_scene_to_file("res://UI/play_menu.tscn")
-# TODO: wenn der Rest geht, UpdateToPublic, UpdateToPrivate !!! NUR HOST !!!

@@ -7,7 +7,7 @@ signal player_connected(peer_id, player_info)
 signal player_disconnected(peer_id)
 signal server_disconnected
 
-const PORT = 7000
+const PORT = 9000
 const DEFAULT_SERVER_IP = "127.0.0.1" # IPv4 localhost
 const MAX_CONNECTIONS = 2
 	
@@ -23,15 +23,33 @@ var player_info = {"name": "Name", "fraction" : "Fraction"}
 
 var players_loaded = 0
 
-
+var thread = null
 
 func _ready():
+	thread = Thread.new()
+	thread.start(_upnp_setup.bind(PORT))
+
 	multiplayer.peer_connected.connect(_on_player_connected)
 	multiplayer.peer_disconnected.connect(_on_player_disconnected)
 	multiplayer.connected_to_server.connect(_on_connected_ok)
 	multiplayer.connection_failed.connect(_on_connected_fail)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 
+func _upnp_setup(PORT):
+	var upnp = UPNP.new()
+	var discover_result = upnp.discover()
+	
+	if discover_result == UPNP.UPNP_RESULT_SUCCESS:
+		if upnp.get_gateway() and upnp.get_gateway().is_valid_gateway():
+			var map_result_udp = upnp.add_port_mapping(PORT, PORT, "godot_udp", "UDP", 0)
+			var map_result_tcp = upnp.add_port_mapping(PORT, PORT, "godot_tcp", "TCP", 0)
+
+			if not map_result_udp == UPNP.UPNP_RESULT_SUCCESS:
+				upnp.add_port_mapping(PORT, PORT, "UDP")
+			if not map_result_tcp == UPNP.UPNP_RESULT_SUCCESS:
+				upnp.add_port_mapping(PORT, PORT, "TCP")
+	upnp.delete_port_mapping(PORT, "UDP")
+	upnp.delete_port_mapping(PORT, "TCP")
 
 func join_game(address = ""):
 	if address.is_empty():
