@@ -203,7 +203,6 @@ func create_private_lobby():
 func join_private_lobby():
 	$HTTPRequest.request_completed.connect(_on_private_request_completed)
 	$HTTPRequest.request("https://valtonlobbycontainer.trueberryless.org/Lobby/JoinSessionWithCode?lobbyCode="+str(LobbyType.lobby_enter_key))
-	httpActive = false
 	
 func _on_private_request_completed(result, response_code, headers, body):
 	ip = body.get_string_from_utf8()

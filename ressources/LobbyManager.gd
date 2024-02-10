@@ -7,8 +7,9 @@ signal player_connected(peer_id, player_info)
 signal player_disconnected(peer_id)
 signal server_disconnected
 
-const PORT = 9000
-const DEFAULT_SERVER_IP = "127.0.0.1" # IPv4 localhost
+const PORT = 6999
+#const DEFAULT_SERVER_IP = "127.0.0.1" # IPv4 localhost
+const DEFAULT_SERVER_IP = "12.45.23.12" # IPv4 localhost
 
 const MAX_CONNECTIONS = 2
 	
@@ -38,6 +39,20 @@ func _ready():
 
 func _upnp_setup(PORT):
 	var upnp = UPNP.new()
+	
+	var discover_result = upnp.discover()
+	assert(discover_result == UPNP.UPNP_RESULT_SUCCESS, "UPNP Discover Failed! Error %s" % discover_result)
+
+	assert(upnp.get_gateway() and upnp.get_gateway().is_valid_gateway(), "UPNP Invalid Gateway!")
+
+	var map_result = upnp.add_port_mapping(PORT)
+	assert(map_result == UPNP.UPNP_RESULT_SUCCESS, "UPNP Port Mapping Failed! Error %s" % map_result)
+	
+	print("Success! Join Address: %s" % upnp.query_external_address())
+	
+
+func upnp_setup_backup(PORT):
+	var upnp = UPNP.new()
 	var discover_result = upnp.discover()
 	
 	if discover_result == UPNP.UPNP_RESULT_SUCCESS:
@@ -51,7 +66,7 @@ func _upnp_setup(PORT):
 				upnp.add_port_mapping(PORT, PORT, "TCP")
 	upnp.delete_port_mapping(PORT, "UDP")
 	upnp.delete_port_mapping(PORT, "TCP")
-
+	
 func join_game(address):
 	if address.is_empty():
 		address = DEFAULT_SERVER_IP
