@@ -9,6 +9,7 @@ signal server_disconnected
 
 const PORT = 9000
 const DEFAULT_SERVER_IP = "127.0.0.1" # IPv4 localhost
+
 const MAX_CONNECTIONS = 2
 	
 # This will contain player info for every player,
@@ -51,7 +52,7 @@ func _upnp_setup(PORT):
 	upnp.delete_port_mapping(PORT, "UDP")
 	upnp.delete_port_mapping(PORT, "TCP")
 
-func join_game(address = ""):
+func join_game(address):
 	if address.is_empty():
 		address = DEFAULT_SERVER_IP
 	var peer = ENetMultiplayerPeer.new()
