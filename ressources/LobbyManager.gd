@@ -8,8 +8,8 @@ signal player_disconnected(peer_id)
 signal server_disconnected
 
 const PORT = 6999
-#const DEFAULT_SERVER_IP = "127.0.0.1" # IPv4 localhost
-const DEFAULT_SERVER_IP = "12.45.23.12" # IPv4 localhost
+const DEFAULT_SERVER_IP = "127.0.0.1" # IPv4 localhost
+#const DEFAULT_SERVER_IP = "12.45.23.12" # IPv4 localhost
 
 const MAX_CONNECTIONS = 2
 	

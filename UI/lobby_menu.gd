@@ -226,7 +226,7 @@ func show_player_line_edit(peer_id, player_info):
 	elif peer_id != 1:
 		$Player2LineEdit.show()
 		$Player2LineEdit.text = player_info["name"]
-	
+
 
 func hide_player_line_edit(peer_id):
 	if peer_id == 1:
